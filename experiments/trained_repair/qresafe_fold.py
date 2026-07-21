@@ -1,13 +1,26 @@
 # Fold trained LoRA delta back into AQLM quantized weights.
+
+# Front Matter
+import os
 import sys
 
 import torch
 
-AQLM_REPO = "/jet/home/bhoomire/projects/AQLM"
-if AQLM_REPO not in sys.path:
+from core.datasets import load_arc_challenge
+from core.model_loader import load_quantized
+from core.restoration import measure_arc
+from experiments.trained_repair.qresafe_repair import select_target_modules
+
+AQLM_REPO = os.environ.get("AQLM_REPO", "")
+if AQLM_REPO and AQLM_REPO not in sys.path:
     sys.path.insert(0, AQLM_REPO)
 
 from aqlm.utils import _dequantize_weight, pack_int_data, unpack_int_data  # noqa: E402
+
+try:
+    from src.aq import QuantizedWeight
+except ImportError:
+    QuantizedWeight = None
 
 
 def quant_cfg(model):
@@ -88,7 +101,8 @@ def fold_and_writeback_(module, delta, cfg, beam_size = 5):
     # Non-zero delta: rebuild Codes via QuantizedWeight beam search
     changed = 0.0
     if delta is not None and float(delta.abs().sum()) > 0.0:
-        from src.aq import QuantizedWeight
+        if QuantizedWeight is None:
+            raise ImportError("src.aq.QuantizedWeight requires AQLM_REPO on sys.path")
         W = _dequantize_weight(codes_u, codebooks, scales)
         W_target = (W + delta.to(W.dtype)).float()
         qw = QuantizedWeight.__new__(QuantizedWeight)   # bypass kmeans re-init
@@ -172,12 +186,6 @@ def run_gate(model_alias = "llama7b", quantizer = "aqlm2", n_arc = 100):
     Outputs:
         - ok (bool): True if the gate passed
     """
-    # Import loaders lazily so library import does not require GPU stacks
-    from core.model_loader import load_quantized
-    from core.datasets import load_arc_challenge
-    from core.restoration import measure_arc
-    from experiments.trained_repair.qresafe_repair import select_target_modules
-
     # Load checkpoint and resolve targets
     model, tok = load_quantized(model_alias, quantizer = quantizer)
     cfg = quant_cfg(model)
@@ -215,10 +223,6 @@ def delta_fold_smoke(model_alias = "llama7b", quantizer = "aqlm2"):
     Outputs:
         - ok (bool): True if codes moved and reconstruction stayed finite
     """
-    # Import loaders lazily for the standalone smoke path
-    from core.model_loader import load_quantized
-    from experiments.trained_repair.qresafe_repair import select_target_modules
-
     # Load one reader module and build a small random LoRA-like delta
     model, tok = load_quantized(model_alias, quantizer = quantizer)
     cfg = quant_cfg(model)

@@ -1,4 +1,6 @@
 # Exact reproduction of Arditi et al. behavioral-direction selection.
+
+# Front Matter
 import argparse
 from pathlib import Path
 
@@ -15,6 +17,7 @@ from core.evaluation import (
     _extract_behavior,
 )
 from core.manifest import RunConfig, save_result
+from core.model_loader import load_fp32, load_quantized
 from core.residuals import get_inner, prompt_text
 from core.seeds import set_global_seed, DEFAULT_SEED
 
@@ -45,7 +48,6 @@ def load_model(name, quantizer):
         - n_layers (int): Number of hidden layers
     """
     # Dispatch to FP32 vs quantized loader
-    from core.model_loader import load_fp32, load_quantized
     if quantizer == "fp32":
         model, tok = load_fp32(name)
     else:

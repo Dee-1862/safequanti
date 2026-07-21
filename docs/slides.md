@@ -96,7 +96,7 @@ In a well-aligned FP32 model, around layers 10-20, the READ matrices detect "thi
 **How it works:** The residual stream has 1,536 values. Each **column j** of the read matrix acts like a probe that reads cup j:
 
 ```
-Residual stream:  [ cup_0,  cup_1,  cup_2, ..., cup_1535 ]
+Residual stream: [ cup_0,  cup_1,  cup_2, ..., cup_1535 ]
                       |        |        |            |
                   col_0    col_1    col_2  ...   col_1535
                       \        \        \      /
@@ -123,7 +123,7 @@ Residual stream:  [ cup_0,  cup_1,  cup_2, ..., cup_1535 ]
                       /        /        /      \
                   row_0    row_1    row_2  ...   row_1535
                       |        |        |            |
-Residual stream:  [ cup_0,  cup_1,  cup_2, ..., cup_1535 ]
+Residual stream: [ cup_0,  cup_1,  cup_2, ..., cup_1535 ]
                   (each cup gets a small update added to it)
 ```
 

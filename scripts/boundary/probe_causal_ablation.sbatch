@@ -1,16 +1,16 @@
 #!/bin/bash
 #SBATCH --job-name=sq_ablate
-#SBATCH --account=cis250287p
+#SBATCH --account=YOUR_ALLOCATION
 #SBATCH --partition=GPU-shared
 #SBATCH --gpus=h100-80:1
 #SBATCH -N 1
 #SBATCH --time=6:00:00
 #SBATCH --mem=128G
-#SBATCH --output=/jet/home/bhoomire/projects/safequant_v2/scripts/logs/probe_ablate_%j.out
-#SBATCH --error=/jet/home/bhoomire/projects/safequant_v2/scripts/logs/probe_ablate_%j.err
-source "${SLURM_SUBMIT_DIR:-/jet/home/bhoomire/projects/safequant_v2}/scripts/_env.sh"
+#SBATCH --output=scripts/logs/probe_ablate_%j.out
+#SBATCH --error=scripts/logs/probe_ablate_%j.err
+source "$(dirname "$0")/../_env.sh"
 
-# Appendix — ablate best probe direction, measure ASR.
+# Appendix : ablate best probe direction, measure ASR.
 
 
 echo "=== probe causal ablation | $(date) ==="

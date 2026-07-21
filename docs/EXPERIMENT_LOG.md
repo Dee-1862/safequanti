@@ -130,9 +130,9 @@ Binary dimension-level swapping is fundamentally flawed due to the Frankenstein 
 ### What We Found
 **Debug test (definitive proof):**
 ```
-Baseline AWQ cosine with FP32:        0.9957  (works perfectly natively)
-Replace 1 layer with FP32:            0.9257  (degraded)
-Replace all q_proj (32 layers):       0.7115  (badly broken)
+Baseline AWQ cosine with FP32:       0.9957  (works perfectly natively)
+Replace 1 layer with FP32:           0.9257  (degraded)
+Replace all q_proj (32 layers):      0.7115  (badly broken)
 Replace ALL 224 projections with FP32: 0.7411  (should be ~1.0 but isn't!)
 ```
 

@@ -7,7 +7,9 @@ os.environ["GPTQMODEL_FORCE_BACKEND"] = "torch"
 # Disable torch.compile which causes PY_SSIZE_T_CLEAN errors on older torch
 os.environ["TORCHDYNAMO_DISABLE"] = "1"
 
+# Front Matter
 import torch
+import torch.nn as nn
 from datasets import load_dataset as _load_ds
 from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 from transformers import GPTQConfig
@@ -18,6 +20,16 @@ try:
     from config import MODEL_REVISIONS
 except ImportError:
     MODEL_REVISIONS = {}
+
+try:
+    import optimum.gptq.quantizer as _oq
+except ImportError:
+    _oq = None
+
+try:
+    import bitsandbytes.functional as bnb_F
+except ImportError:
+    bnb_F = None
 
 
 def _resolve_model_path(model_name):
@@ -382,8 +394,7 @@ def _load_gptq(model_name, device = None, bits = 4):
     # quantization-TIME knob (it controls how groups are ORDERED while quantizing);
     # the already-quantized weights load identically, so this changes no results.
     # Idempotent; load-path only.
-    import optimum.gptq.quantizer as _oq
-    if not getattr(_oq.GPTQQuantizer, "_safequant_agaw_patch", False):
+    if _oq is not None and not getattr(_oq.GPTQQuantizer, "_safequant_agaw_patch", False):
         _orig_gptq_init = _oq.GPTQQuantizer.__init__
 
         def _agaw_init(self, *a, **kw):
@@ -528,8 +539,6 @@ def get_weight(module, as_dtype = torch.float32):
     Outputs:
         - weight (torch.Tensor): Dense (out_features, in_features) weight
     """
-    import torch.nn as nn
-
     # Dimension attrs differ across quantizer wrappers
     in_f = getattr(module, "in_features", None) or getattr(module, "infeatures", None)
     out_f = getattr(module, "out_features", None) or getattr(
@@ -555,8 +564,8 @@ def get_weight(module, as_dtype = torch.float32):
     # BitsAndBytes Params4bit (NF4)
     if hasattr(module.weight, "quant_type"):
         try:
-            import bitsandbytes.functional as bnb_F
-
+            if bnb_F is None:
+                raise ImportError("bitsandbytes is not installed")
             weight = (
                 bnb_F.dequantize_4bit(
                     module.weight.data,

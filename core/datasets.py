@@ -51,7 +51,7 @@ def load_wildjailbreak_prompts(n_samples = None, config = "train", cache_dir = N
     Uses the "adversarial_harmful" subset, prompts with jailbreak tactics composed in.
 
     Returns list of dicts containing:
-      - prompt (str):  the adversarial (jailbroken) prompt to send to the model
+      - prompt (str): the adversarial (jailbroken) prompt to send to the model
       - vanilla (str): the original harmful intent (short, used as behavior label for judge)
       - data_type (str): the type of the data
     """

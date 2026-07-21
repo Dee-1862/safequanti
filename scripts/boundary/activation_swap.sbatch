@@ -1,16 +1,16 @@
 #!/bin/bash
 #SBATCH --job-name=sq_actswap
-#SBATCH --account=cis250287p
+#SBATCH --account=YOUR_ALLOCATION
 #SBATCH --partition=GPU-shared
 #SBATCH --gpus=h100-80:1
 #SBATCH -N 1
 #SBATCH --time=6:00:00
 #SBATCH --mem=128G
-#SBATCH --output=/jet/home/bhoomire/projects/safequant_v2/scripts/logs/act_swap_%j.out
-#SBATCH --error=/jet/home/bhoomire/projects/safequant_v2/scripts/logs/act_swap_%j.err
-source "${SLURM_SUBMIT_DIR:-/jet/home/bhoomire/projects/safequant_v2}/scripts/_env.sh"
+#SBATCH --output=scripts/logs/act_swap_%j.out
+#SBATCH --error=scripts/logs/act_swap_%j.err
+source "$(dirname "$0")/../_env.sh"
 
-# Appendix — swap quantized activations into FP32 at select layers.
+# Appendix : swap quantized activations into FP32 at select layers.
 
 
 echo "=== activation swap | $(date) ==="

@@ -1,4 +1,6 @@
 # Reader-side (vs writer-side) low-bit REPAIR via quant-domain LR-QAT.
+
+# Front Matter
 import argparse
 import gc
 import json
@@ -23,6 +25,11 @@ from core.manifest import RunConfig, find_result, save_result
 from core.model_loader import load_fp32, load_quantized, get_weight
 from core.restoration import READ_PROJS, WRITE_PROJS, measure_arc
 from core.seeds import set_global_seed, DEFAULT_SEED
+
+try:
+    import bitsandbytes as bnb
+except ImportError:
+    bnb = None
 
 SEED = set_global_seed(DEFAULT_SEED)
 random.seed(SEED)
@@ -135,10 +142,11 @@ def train_adapters(student, teacher, trainable, train_blocks, val_blocks, args, 
     """
     # Prefer 8-bit AdamW when bitsandbytes is available
     try:
-        import bitsandbytes as bnb
+        if bnb is None:
+            raise ImportError("bitsandbytes is not installed")
         optim = bnb.optim.AdamW8bit(trainable, lr = args.lr, weight_decay = 0.0)
         opt_name = "bitsandbytes.AdamW8bit"
-    except Exception as e:  # pragma: no cover - fallback if bnb unavailable
+    except Exception as e: # pragma: no cover - fallback if bnb unavailable
         print(f"  [warn] bitsandbytes optimizer unavailable ({e}); using torch.AdamW")
         optim = torch.optim.AdamW(trainable, lr = args.lr, weight_decay = 0.0)
         opt_name = "torch.AdamW"

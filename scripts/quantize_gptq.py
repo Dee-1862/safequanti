@@ -1,4 +1,6 @@
 # Reproducible GPTQ quantization via AutoGPTQ (Bridges-2 helper).
+
+# Front Matter
 import argparse
 import random
 import sys
@@ -9,10 +11,40 @@ import torch
 from auto_gptq import AutoGPTQForCausalLM, BaseQuantizeConfig
 from transformers import AutoTokenizer
 
+try:
+    from auto_gptq.modeling._base import BaseGPTQForCausalLM
+    from auto_gptq.modeling import _const as _agc, auto as _aga
+except ImportError:
+    BaseGPTQForCausalLM = None
+    _agc = _aga = None
+
 # Repo root must be on path when invoked as scripts/quantize_gptq.py
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from config import MODELS, MODEL_REVISIONS, HF_HOME  # noqa: E402
+from config import MODELS, MODEL_REVISIONS, HF_HOME, QM_ROOT  # noqa: E402
 from core.datasets import load_dataset
+
+
+def _register_phi3_autogptq():
+    """Register Phi-3 fused layout for auto-gptq 0.7.1 (no-op on other archs)."""
+    if BaseGPTQForCausalLM is None:
+        return
+    try:
+        if "phi3" not in _agc.SUPPORTED_MODELS:
+            class Phi3GPTQForCausalLM(BaseGPTQForCausalLM):
+                layer_type = "Phi3DecoderLayer"
+                layers_block_name = "model.layers"
+                outside_layer_modules = ["model.embed_tokens", "model.norm"]
+                inside_layer_modules = [
+                    ["self_attn.qkv_proj"],
+                    ["self_attn.o_proj"],
+                    ["mlp.gate_up_proj"],
+                    ["mlp.down_proj"],
+                ]
+            _agc.SUPPORTED_MODELS.append("phi3")
+            _aga.GPTQ_CAUSAL_LM_MODEL_MAP["phi3"] = Phi3GPTQForCausalLM
+            print("  registered Phi-3 support in auto-gptq (fused qkv/gate_up)")
+    except Exception as _e:
+        print(f"  WARN: phi3 auto-gptq registration failed: {_e}")
 
 
 def default_output_dir(model, bits, group_size):
@@ -27,9 +59,7 @@ def default_output_dir(model, bits, group_size):
     Outputs:
         - out_dir (Path): Target directory for saved weights
     """
-    # Parent of HF cache lives on Ocean project storage
-    base = Path(HF_HOME).parent.parent
-    return base / "quantized_models" / "gptq" / f"{model}-gptq{bits}bit-g{group_size}"
+    return Path(QM_ROOT) / "gptq" / f"{model}-gptq{bits}bit-g{group_size}"
 
 
 def build_calibration(tokenizer, n_samples, seqlen, seed):
@@ -124,26 +154,7 @@ def main():
     if revision:
         init_kwargs["revision"] = revision
 
-    # Register Phi-3 fused layout for auto-gptq 0.7.1 (no-op on other archs)
-    try:
-        from auto_gptq.modeling._base import BaseGPTQForCausalLM
-        from auto_gptq.modeling import _const as _agc, auto as _aga
-        if "phi3" not in _agc.SUPPORTED_MODELS:
-            class Phi3GPTQForCausalLM(BaseGPTQForCausalLM):
-                layer_type = "Phi3DecoderLayer"
-                layers_block_name = "model.layers"
-                outside_layer_modules = ["model.embed_tokens", "model.norm"]
-                inside_layer_modules = [
-                    ["self_attn.qkv_proj"],
-                    ["self_attn.o_proj"],
-                    ["mlp.gate_up_proj"],
-                    ["mlp.down_proj"],
-                ]
-            _agc.SUPPORTED_MODELS.append("phi3")
-            _aga.GPTQ_CAUSAL_LM_MODEL_MAP["phi3"] = Phi3GPTQForCausalLM
-            print("  registered Phi-3 support in auto-gptq (fused qkv/gate_up)")
-    except Exception as _e:
-        print(f"  WARN: phi3 auto-gptq registration failed: {_e}")
+    _register_phi3_autogptq()
 
     model = AutoGPTQForCausalLM.from_pretrained(model_path, quantize_config, **init_kwargs)
 

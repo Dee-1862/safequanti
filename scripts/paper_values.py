@@ -143,7 +143,10 @@ def dmed_quant(m, q):
         for v in d[qk[0]].values()
         if isinstance(v, dict) and v.get("separation_sigma") is not None
     ]
-    return rnd(statistics.median(vals), 2) if vals else None
+    if not vals:
+        return None
+    med = statistics.median(vals)
+    return rnd(med, 2)
 
 
 def cond_map(d, block):
@@ -164,9 +167,15 @@ def cond_map(d, block):
     )
     out = {}
     for c in CONDS:
-        key = qtz if c == "quant" else c
+        if c == "quant":
+            key = qtz
+        else:
+            key = c
         val = src.get(key)
-        out[c] = rnd(val, 1) if val is not None else None
+        if val is None:
+            out[c] = None
+        else:
+            out[c] = rnd(val, 1)
     return out
 
 
@@ -192,7 +201,7 @@ def screen_verdict(rs):
     # Coherence collapse: utility near chance
     if arc_q is not None and arc_q < 35:
         return "fails coherence"
-    # High baseline refusal already — hard to interpret damage
+    # High baseline refusal already; hard to interpret damage
     if fp_asr is not None and fp_asr >= 70:
         return "fails baseline"
     if damage is None:
@@ -219,12 +228,13 @@ def recovery_rho(recovery_pp, damage_pp):
     """
     if recovery_pp is None or not damage_pp:
         return None
-    return int(round(100.0 * float(recovery_pp) / float(damage_pp)))
+    pct = 100.0 * float(recovery_pp) / float(damage_pp)
+    return int(round(pct))
 
 
 def build_geometry():
     """
-    Build tab:geometry — dmed, a_min, cosmed, coswmed per model/quant cell.
+    Build tab:geometry: dmed, a_min, cosmed, coswmed per model/quant cell.
 
     Inputs:
         - None
@@ -272,7 +282,7 @@ STUDIABLE_HEADLINE = {("llama", "aqlm2"), ("phi3", "aqlm2")}
 
 def build_regime():
     """
-    Build tab:regime — ASR/ARC per condition + screen verdict.
+    Build tab:regime: ASR/ARC per condition + screen verdict.
 
     Inputs:
         - None
@@ -286,14 +296,23 @@ def build_regime():
             rs = restore(m, q)
             if not rs:
                 continue
-            hl = (load(f"{OUT}/headline/headline_{m}_{q}.json")
-                  if (m, q) in STUDIABLE_HEADLINE else None)
-            if hl:  # headline-canonical (consistent single run + stats)
-                asr, arc = cond_map(hl, "asr"), cond_map(hl, "arc")
-                damage, src = rnd(g(hl, "damage_pp"), 1), "headline"
-            else:   # deterministic cells: restoration re-run (ARC n=100)
-                asr, arc = cond_map(rs, "asr_per_condition"), cond_map(rs, "arc")
-                damage, src = rnd(g(rs, "damage_pp"), 1), "restoration_sweep"
+            hl_path = f"{OUT}/headline/headline_{m}_{q}.json"
+            if (m, q) in STUDIABLE_HEADLINE:
+                hl = load(hl_path)
+            else:
+                hl = None
+            if hl:
+                # headline-canonical (consistent single run + stats)
+                asr = cond_map(hl, "asr")
+                arc = cond_map(hl, "arc")
+                damage = rnd(g(hl, "damage_pp"), 1)
+                src = "headline"
+            else:
+                # deterministic cells: restoration re-run (ARC n=100)
+                asr = cond_map(rs, "asr_per_condition")
+                arc = cond_map(rs, "arc")
+                damage = rnd(g(rs, "damage_pp"), 1)
+                src = "restoration_sweep"
             cells[f"{m}/{q}"] = {
                 "model_label": MODEL_LABEL[m],
                 "quant_label": QUANT_LABEL[q],
@@ -316,7 +335,7 @@ def build_regime():
 
 def build_f3a_proj():
     """
-    Build tab:f3a_proj — per-projection recovery rho on Llama AQLM-2 middle band.
+    Build tab:f3a_proj: per-projection recovery rho on Llama AQLM-2 middle band.
 
     Inputs:
         - None
@@ -347,7 +366,7 @@ def build_f3a_proj():
 
 def build_f3a_range():
     """
-    Build tab:f3a_range — depth-band read/write recovery.
+    Build tab:f3a_range: depth-band read/write recovery.
 
     Inputs:
         - None
@@ -387,7 +406,7 @@ def build_f3a_range():
 
 def build_f3a():
     """
-    Build tab:f3a — static restoration headline (Llama AQLM-2).
+    Build tab:f3a: static restoration headline (Llama AQLM-2).
 
     Inputs:
         - None
@@ -399,30 +418,27 @@ def build_f3a():
     damage = g(hl, "damage_pp")
     rec = g(hl, "recovery_pp", default = {}) or {}
     xs = g(hl, "xstest", default = {}) or {}
+
+    def row(restoration, asr_key, rec_key = None, arc_key = None, xs_key = None):
+        rec_pp = rec.get(rec_key) if rec_key else None
+        delta = None
+        if rec_pp is not None:
+            delta = rnd(-rec_pp, 1)
+        return {
+            "restoration": restoration,
+            "asr": rnd(g(hl, "asr", asr_key), 1),
+            "delta_quant": delta,
+            "rho_pct": recovery_rho(rec_pp, damage),
+            "arc": rnd(g(hl, "arc", arc_key or asr_key), 0),
+            "xstest_fr": rnd(g(xs.get(xs_key or asr_key, {}), "false_refusal_rate"), 1),
+        }
+
     rows = [
-        {"restoration": "FP32", "asr": rnd(g(hl, "asr", "fp32"), 1),
-         "delta_quant": None, "rho_pct": None,
-         "arc": rnd(g(hl, "arc", "fp32"), 0),
-         "xstest_fr": rnd(g(xs.get("fp32", {}), "false_refusal_rate"), 1)},
-        {"restoration": "quant", "asr": rnd(g(hl, "asr", "aqlm2"), 1),
-         "delta_quant": None, "rho_pct": None,
-         "arc": rnd(g(hl, "arc", "aqlm2"), 0),
-         "xstest_fr": rnd(g(xs.get("aqlm2", {}), "false_refusal_rate"), 1)},
-        {"restoration": "+ Write-side", "asr": rnd(g(hl, "asr", "write_restored"), 1),
-         "delta_quant": rnd(-g(rec, "write"), 1) if rec.get("write") else None,
-         "rho_pct": recovery_rho(rec.get("write"), damage),
-         "arc": rnd(g(hl, "arc", "write_restored"), 0),
-         "xstest_fr": rnd(g(xs.get("write_restored", {}), "false_refusal_rate"), 1)},
-        {"restoration": "+ Read-side", "asr": rnd(g(hl, "asr", "read_restored"), 1),
-         "delta_quant": rnd(-g(rec, "read"), 1) if rec.get("read") else None,
-         "rho_pct": recovery_rho(rec.get("read"), damage),
-         "arc": rnd(g(hl, "arc", "read_restored"), 0),
-         "xstest_fr": rnd(g(xs.get("read_restored", {}), "false_refusal_rate"), 1)},
-        {"restoration": "+ Both", "asr": rnd(g(hl, "asr", "both_restored"), 1),
-         "delta_quant": rnd(-g(rec, "both"), 1) if rec.get("both") else None,
-         "rho_pct": recovery_rho(rec.get("both"), damage),
-         "arc": rnd(g(hl, "arc", "both_restored"), 0),
-         "xstest_fr": rnd(g(xs.get("both_restored", {}), "false_refusal_rate"), 1)},
+        row("FP32", "fp32"),
+        row("quant", "aqlm2"),
+        row("+ Write-side", "write_restored", rec_key = "write"),
+        row("+ Read-side", "read_restored", rec_key = "read"),
+        row("+ Both", "both_restored", rec_key = "both"),
     ]
     return {
         "source": "headline_llama_aqlm2.json",
@@ -434,7 +450,7 @@ def build_f3a():
 
 def build_controls():
     """
-    Build tab:controls — localization controls for Llama and Phi-3 AQLM-2.
+    Build tab:controls: localization controls for Llama and Phi-3 AQLM-2.
 
     Inputs:
         - None
@@ -466,15 +482,16 @@ def build_controls():
             },
         }
         if cosmed and g(cosmed, "summary"):
+            sm = cosmed["summary"]
             cell["direction_cosine"]["read_restored"] = rnd(
-                g(cosmed, "summary", "read_restored_cos_median"), 3)
+                sm.get("cosmed_read_restored") or sm.get("read_restored_cos_median"), 3)
             cell["direction_cosine"]["write_restored"] = rnd(
-                g(cosmed, "summary", "write_restored_cos_median"), 3)
+                sm.get("cosmed_write_restored") or sm.get("write_restored_cos_median"), 3)
             cell["direction_cosine"]["both_restored"] = rnd(
-                g(cosmed, "summary", "both_restored_cos_median"), 3)
+                sm.get("cosmed_both_restored") or sm.get("both_restored_cos_median"), 3)
         else:
             cell["direction_cosine"]["note"] = (
-                "cosmed_after_restore missing or empty — run "
+                "cosmed_after_restore missing or empty; run "
                 f"experiments.signal_geometry.cosmed_after_restore --model {m}")
         out[m] = cell
     return {"source": "param_matched_restore, probe_refit_control, cosmed_after_restore", "cells": out}
@@ -482,7 +499,7 @@ def build_controls():
 
 def build_trained_repair():
     """
-    Build tab:trained_repair — Q-Resafe folded patches (rank 128 target).
+    Build tab:trained_repair: Q-Resafe folded patches (rank 128 target).
 
     Inputs:
         - None
@@ -532,7 +549,7 @@ def build_trained_repair():
 
 def build_lrqat():
     """
-    Build tab:lrqat — LR-QAT cells for Llama AQLM-2 read/write x int2/int4.
+    Build tab:lrqat: LR-QAT cells for Llama AQLM-2 read/write x int2/int4.
 
     Inputs:
         - None

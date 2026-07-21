@@ -66,9 +66,9 @@ python diagnostics/integrity_checks.py --model qwen0.5b --n_eval 20
 **Expected output:**
 ```
 CHECK 1: Weight Identity Test
-  FP32 ASR:     22.0%
+  FP32 ASR:    22.0%
   Restored ASR: 22.5%
-  Difference:   0.5pp
+  Difference:  0.5pp
 OK PASS
 
 CHECK 2: Quantization Persistence Test

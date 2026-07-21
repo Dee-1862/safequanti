@@ -46,10 +46,10 @@ def main():
         for f in by_dir[d]:
             try:
                 js = json.load(open(f))
-            except Exception as e:  # noqa: BLE001
-                print(f"  • {Path(f).name}: UNREADABLE ({e})")
+            except Exception as e: # noqa: BLE001
+                print(f"  - {Path(f).name}: UNREADABLE ({e})")
                 continue
-            print(f"\n  • {Path(f).name}")
+            print(f"\n  - {Path(f).name}")
             if isinstance(js.get("summary"), dict):
                 print(f"      summary: {json.dumps(js['summary'], default=str)}")
             top = {k: js[k] for k in INTERESTING if k in js}

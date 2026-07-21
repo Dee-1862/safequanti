@@ -1,14 +1,14 @@
 #!/bin/bash
 #SBATCH --job-name=sq_f3a_multi
-#SBATCH --account=cis250287p
+#SBATCH --account=YOUR_ALLOCATION
 #SBATCH --partition=GPU-shared
 #SBATCH --gpus=h100-80:1
 #SBATCH -N 1
 #SBATCH --time=16:00:00
 #SBATCH --mem=128G
-#SBATCH --output=/jet/home/bhoomire/projects/safequant_v2/scripts/logs/f3a_multi_%j.out
-#SBATCH --error=/jet/home/bhoomire/projects/safequant_v2/scripts/logs/f3a_multi_%j.err
-source "${SLURM_SUBMIT_DIR:-/jet/home/bhoomire/projects/safequant_v2}/scripts/_env.sh"
+#SBATCH --output=scripts/logs/f3a_multi_%j.out
+#SBATCH --error=scripts/logs/f3a_multi_%j.err
+source "$(dirname "$0")/../_env.sh"
 
 # From scripts_old/f3a_static_restoration_*.sbatch (condensed).
 

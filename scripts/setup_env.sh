@@ -1,30 +1,24 @@
 #!/bin/bash
-# One-time Bridges-2 env bootstrap (login node). Installs missing packages into sq_clean.
-# Usage: bash scripts/setup_env.sh
+# One-time bootstrap: pip install + create cache dirs. Requires .env to be configured.
 
 set -euo pipefail
 
-CONDA_BASE=/opt/packages/anaconda3-2024.10-1
-OCEAN_BASE=/ocean/projects/cis240116p/bhoomire
-CONDA_ENV="${OCEAN_BASE}/conda_envs/sq_clean"
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+# shellcheck disable=SC1091
+source "${ROOT}/scripts/load_env.sh"
 
-source "${CONDA_BASE}/etc/profile.d/conda.sh"
-conda activate "${CONDA_ENV}"
-echo "Activated: ${CONDA_ENV}"
-echo "Python: $(python --version)"
-echo "Torch:  $(python -c 'import torch; print(torch.__version__)')"
+if [[ -f /opt/packages/anaconda3-2024.10-1/etc/profile.d/conda.sh && -n "${CONDA_ENV:-}" ]]; then
+  # shellcheck disable=SC1091
+  source /opt/packages/anaconda3-2024.10-1/etc/profile.d/conda.sh
+  conda activate "${CONDA_ENV}"
+fi
 
-mkdir -p "${OCEAN_BASE}/.cache/huggingface"
-mkdir -p "${OCEAN_BASE}/.cache/huggingface/datasets"
+export HF_HOME="${HF_HOME:-${HOME}/.cache/huggingface}"
+export QM_ROOT="${QM_ROOT:-${HOME}/quantized_models}"
+mkdir -p "${HF_HOME}" "${HF_HOME}/datasets" "${QM_ROOT}"
 
-pip install -q "bitsandbytes>=0.43.0" "accelerate>=0.26.0" "scipy>=1.11.0" "pytest>=8.0"
+pip install -q -r requirements.txt
 
-python -c "
-import torch, transformers, bitsandbytes as bnb, accelerate
-print(f'torch={torch.__version__} transformers={transformers.__version__}')
-print(f'bitsandbytes={bnb.__version__} accelerate={accelerate.__version__}')
-print(f'CUDA (torch): {torch.version.cuda}')
-print('Note: torch.cuda.is_available() is False on login nodes; True on GPU allocations.')
-"
-
-echo "Setup complete. Example: sbatch scripts/headline/headline_eval_llama.sbatch"
+echo "HF_HOME=${HF_HOME}"
+echo "QM_ROOT=${QM_ROOT}"
+echo "Done. Next: huggingface-cli login && bash scripts/fetch_checkpoints.sh"

@@ -1,16 +1,16 @@
 #!/bin/bash
 #SBATCH --job-name=sq_pairs
-#SBATCH --account=cis250287p
+#SBATCH --account=YOUR_ALLOCATION
 #SBATCH --partition=GPU-shared
 #SBATCH --gpus=h100-80:1
 #SBATCH -N 1
 #SBATCH --time=6:00:00
 #SBATCH --mem=128G
-#SBATCH --output=/jet/home/bhoomire/projects/safequant_v2/scripts/logs/qresafe_pairs_%j.out
-#SBATCH --error=/jet/home/bhoomire/projects/safequant_v2/scripts/logs/qresafe_pairs_%j.err
-source "${SLURM_SUBMIT_DIR:-/jet/home/bhoomire/projects/safequant_v2}/scripts/_env.sh"
+#SBATCH --output=scripts/logs/qresafe_pairs_%j.out
+#SBATCH --error=scripts/logs/qresafe_pairs_%j.err
+source "$(dirname "$0")/../_env.sh"
 
-# Tables 6–7 data — build pairs before DPO.
+# Tables 6-7 data : build pairs before DPO.
 
 
 echo "=== Q-Resafe displacement pairs | $(date) ==="

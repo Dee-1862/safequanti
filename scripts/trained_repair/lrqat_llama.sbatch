@@ -1,14 +1,14 @@
 #!/bin/bash
 #SBATCH --job-name=sq_lrqat
-#SBATCH --account=cis250287p
+#SBATCH --account=YOUR_ALLOCATION
 #SBATCH --partition=GPU-shared
 #SBATCH --gpus=h100-80:1
 #SBATCH -N 1
 #SBATCH --time=8:00:00
 #SBATCH --mem=128G
-#SBATCH --output=/jet/home/bhoomire/projects/safequant_v2/scripts/logs/lrqat_llama_%j.out
-#SBATCH --error=/jet/home/bhoomire/projects/safequant_v2/scripts/logs/lrqat_llama_%j.err
-source "${SLURM_SUBMIT_DIR:-/jet/home/bhoomire/projects/safequant_v2}/scripts/_env.sh"
+#SBATCH --output=scripts/logs/lrqat_llama_%j.out
+#SBATCH --error=scripts/logs/lrqat_llama_%j.err
+source "$(dirname "$0")/../_env.sh"
 
 # Table 7 -- ONE matched-budget LR-QAT cell (role x n_bits) per job, so the four
 # cells run in PARALLEL instead of 4x sequential in one 24h job (which timed out).

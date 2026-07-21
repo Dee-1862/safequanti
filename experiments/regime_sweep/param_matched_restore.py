@@ -40,7 +40,7 @@ def select_whole_subset(weights, read_projs, budget):
            for p in read_projs}
     chosen, total = [], 0
     for p in sorted(per, key=per.get, reverse=True):
-        if total + per[p] <= budget * 1.10:  # allow up to 10% over the budget
+        if total + per[p] <= budget * 1.10: # allow up to 10% over the budget
             chosen.append(p)
             total += per[p]
     return chosen, total

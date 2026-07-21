@@ -9,10 +9,22 @@ outputs/**/*_raw.json
 .ruff_cache/
 paper_refs/
 
+# Generated paper tables (rebuild with: python run_pipeline.py --results --md)
+PAPER_TABLES.md
+paper_values.json
+docs/
 
-# cluster-side artifacts — never track (but keep the logs/ dir so SLURM can write)
+
+# cluster-side artifacts: never track (but keep the logs/ dir so SLURM can write)
 scripts/logs/*
-!scripts/logs/.gitkeep
 logs/
 outputs_pre_realrun_*/
 refusal_direction
+.gitignore
+.env
+scripts/env.local.sh
+.env.local
+scripts/fetch_checkpoints.sh
+scripts/drift_vs_damage.py
+scripts/collect_results.py
+scripts/tests/*

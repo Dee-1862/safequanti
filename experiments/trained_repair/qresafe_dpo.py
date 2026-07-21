@@ -1,4 +1,6 @@
 # Q-Resafe DPO train + fold: masked LoRA on a quantized model.
+
+# Front Matter
 import argparse
 import json
 import sys
@@ -15,6 +17,11 @@ from core.restoration import measure_arc
 from core.seeds import set_global_seed, DEFAULT_SEED
 from experiments.trained_repair.qresafe_fold import quant_cfg, fold_and_writeback_, dequantize_module
 from experiments.trained_repair.qresafe_repair import attach_masked_lora, set_lora_enabled, unwrap_lora
+
+try:
+    import bitsandbytes as bnb
+except ImportError:
+    bnb = None
 
 
 def _tokenize_pair(tok, prompt, completion, device):
@@ -127,7 +134,8 @@ def train_dpo(model, tok, pairs, ref, lora_params, beta, lr, epochs, device, log
     """
     # Prefer 8-bit AdamW at large rank to fit optimizer state
     if opt8bit:
-        import bitsandbytes as bnb
+        if bnb is None:
+            raise ImportError("bitsandbytes is required when --opt8bit is set")
         opt = bnb.optim.AdamW8bit(lora_params, lr = lr)
         print("[opt] using bitsandbytes AdamW8bit")
     else:
@@ -214,28 +222,21 @@ def main():
     ap.add_argument("--model", default = "llama7b")
     ap.add_argument("--quantizer", default = "aqlm2")
     ap.add_argument("--r", type = int, default = 128)
-    ap.add_argument("--alpha", type = float, default = 128.0,
-                    help = "LoRA alpha (official 128; our earlier runs used 256 = 2x scaling)")
+    ap.add_argument("--alpha", type = float, default = 128.0, help = "LoRA alpha (official 128; our earlier runs used 256 = 2x scaling)")
     ap.add_argument("--beta", type = float, default = 0.01)
-    ap.add_argument("--lr", type = float, default = 5e-7,
-                    help = "DPO learning rate (official 5e-7; our earlier runs used 5e-6 = 10x)")
-    ap.add_argument("--epochs", type = int, default = 1,
-                    help = "DPO epochs (official 1; our earlier runs used 3)")
+    ap.add_argument("--lr", type = float, default = 5e-7) #help = "DPO learning rate (official 5e-7; our earlier runs used 5e-6 = 10x)")
+    ap.add_argument("--epochs", type = int, default = 1) #help = "DPO epochs (official 1; our earlier runs used 3)")
     ap.add_argument("--n_eval", type = int, default = 400)
     ap.add_argument("--n_arc", type = int, default = 100)
-    ap.add_argument("--pairs_file", default = None,
-                    help = "displacement pairs JSON (default: qresafe_pairs_<model>_<quant>_wj.json)")
+    ap.add_argument("--pairs_file", default = None, help = "displacement pairs JSON (default: qresafe_pairs_<model>_<quant>_wj.json)")
     ap.add_argument("--output", default = None)
     ap.add_argument("--tag", default = None,
                     help = "suffix appended to the output variant so hyperparameter-sweep "
                            "points do not overwrite each other, e.g. --tag lr5e-6 writes "
                            "outputs/trained_repair/qresafe_dpo_<model>_<quant>_<mask>_lr5e-6.json")
-    ap.add_argument("--opt8bit", action = "store_true", default = False,
-                    help = "use 8-bit AdamW (bitsandbytes) to fit large rank (e.g. r=2048)")
-    ap.add_argument("--save_adapter", action = "store_true", default = False,
-                    help = "save the large LoRA adapter .pt (off by default; only for re-folding)")
-    ap.add_argument("--seed", type = int, default = DEFAULT_SEED,
-                    help = "global RNG seed for reproducible LoRA init + DPO training")
+    ap.add_argument("--opt8bit", action = "store_true", default = False, help = "use 8-bit AdamW (bitsandbytes) to fit large rank (e.g. r=2048)")
+    ap.add_argument("--save_adapter", action = "store_true", default = False, help = "save the large LoRA adapter .pt (off by default; only for re-folding)")
+    ap.add_argument("--seed", type = int, default = DEFAULT_SEED) #help = "global RNG seed for reproducible LoRA init + DPO training")
     args = ap.parse_args()
 
     # Seed every RNG before LoRA init and DPO
@@ -251,7 +252,7 @@ def main():
         if args.pairs_file
         else find_result(
             Path("experiments/trained_repair/qresafe_pairs.py"), pairs_cfg
-        )
+)
         or result_path(Path("experiments/trained_repair/qresafe_pairs.py"), pairs_cfg)
     )
     pairs = json.loads(pairs_path.read_text())["pairs"]
@@ -367,7 +368,7 @@ def _self_test():
     if not (good < neutral < bad):
         print("  FAIL: dpo_loss not monotone in the preference margin")
         ok = False
-    if abs(neutral - 0.6931) > 1e-3:   # -log sigmoid(0) = ln 2
+    if abs(neutral - 0.6931) > 1e-3:  # -log sigmoid(0) = ln 2
         print("  FAIL: neutral loss != ln2")
         ok = False
     print("\n  DPO MATH GATE:", "PASS" if ok else "FAIL")

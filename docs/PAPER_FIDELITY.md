@@ -20,8 +20,8 @@ to the paper is actually **ours** or **absent from the released code**.
 
 | Method | Faithfully reused (High conf.) | Where we diverge | Load-bearing correction |
 |---|---|---|---|
-| **Arditi** | diff-in-means formula, pos×layer grid search, KL≤0.1 + induce>0 constraints, prune-20%, N=128/32, ablation formula `h−(h·r̂)r̂`, **logit refusal-score selection** (`core.evaluation.refusal_score_logit`) | ablation only at **resid_post** not resid_pre+attn+mlp; direction extracted at resid_post (off-by-one layer); no train/val refusal-filtering; eval on **WildJailbreak+HarmBench** not JBB+LlamaGuard | **"Chhabra App. B" is misattributed** — those constants are Arditi's own defaults; residual hook sites still diverge from full Arditi recipe |
-| **Q-Resafe** | DPO sigmoid loss, β=0.01, r=128, adapter-disabled reference model, all-7-projection target set (= our `full`) | lr **5e-6 vs 5e-7 (10×)**, α **256 vs 128 (2×)**, epochs **3 vs 1**; bespoke WildJailbreak displacement pairs vs their ultrafeedback+swap; AQLM-2 vs their AWQ-4/NF4 | **their released code has no SNIP and no fold** — SNIP is paper-only; the code-fold is **ours** |
+| **Arditi** | diff-in-means formula, pos×layer grid search, KL≤0.1 + induce>0 constraints, prune-20%, N=128/32, ablation formula `h−(h·r̂)r̂`, **logit refusal-score selection** (`core.evaluation.refusal_score_logit`) | ablation only at **resid_post** not resid_pre+attn+mlp; direction extracted at resid_post (off-by-one layer); no train/val refusal-filtering; eval on **WildJailbreak+HarmBench** not JBB+LlamaGuard | **"Chhabra App. B" is misattributed** : those constants are Arditi's own defaults; residual hook sites still diverge from full Arditi recipe |
+| **Q-Resafe** | DPO sigmoid loss, β=0.01, r=128, adapter-disabled reference model, all-7-projection target set (= our `full`) | lr **5e-6 vs 5e-7 (10×)**, α **256 vs 128 (2×)**, epochs **3 vs 1**; bespoke WildJailbreak displacement pairs vs their ultrafeedback+swap; AQLM-2 vs their AWQ-4/NF4 | **their released code has no SNIP and no fold** : SNIP is paper-only; the code-fold is **ours** |
 | **LR-QAT** | **bit-exact** integer reparam, STE round, integer clamp, fuse-to-INT-b, α/r scaling, zero-A/kaiming-B init, group-128 (faithful port of `lr_qat_int`) | we implement `lr_qat_int` (an **ablation**), not the headline `lr_qat_fixed_point8` φ-variant; **scale frozen** (they learn ranges); **KD-on-C4** objective vs their next-token CE; hybrid AQLM base (mixed-format) | call it **"LR-QAT (`lr_qat_int` variant), fixed-scale, no φ-downcasting"**; the quant-domain-adapter claim **is verified and holds** |
 
 ---
@@ -30,7 +30,7 @@ to the paper is actually **ours** or **absent from the released code**.
 
 ### I. Fix / decide in CODE
 1. **Q-Resafe hyperparameter drift** (concrete): reconcile `lr=5e-6→5e-7`, `alpha=256→128`,
-   `epochs=3→1` in `qresafe_dpo.py` — or add a one-line justification in the docstring.
+   `epochs=3→1` in `qresafe_dpo.py` : or add a one-line justification in the docstring.
    Directly affects the fold-survival result; highest-priority code item.
 2. *(Decision, larger)* Arditi: selection now uses the logit refusal-score
    (`refusal_score_logit`). Remaining fidelity gap is ablation sites
@@ -39,10 +39,10 @@ to the paper is actually **ours** or **absent from the released code**.
 
 ### II. Correct CITATION / WORDING (cheap, low-risk)
 3. Arditi: replace **"Chhabra App. B"** → Arditi et al. defaults, in code comments and manuscript
-   (unless the actual Chhabra paper can be produced — **still unverified**).
+   (unless the actual Chhabra paper can be produced : **still unverified**).
 4. Arditi: **"exact reproduction"** → "adaptation of / reimplementation following Arditi et al."
 5. Q-Resafe: reframe **"override Q-Resafe's SNIP"** → "Algorithm 1 *as described in the paper*
-   prescribes saliency masking; the released code omits it and trains all projections — we treat
+   prescribes saliency masking; the released code omits it and trains all projections : we treat
    the mask as a controlled variable (read/write/full)."
 6. Q-Resafe: present the **code-fold** as *our* contribution, not Q-Resafe's.
 7. LR-QAT: qualify as the **`lr_qat_int` variant without φ-downcasting, fixed ranges**.
@@ -63,7 +63,7 @@ to the paper is actually **ours** or **absent from the released code**.
 
 ## Side-by-side file map (for detailed comparison)
 
-### Arditi — refusal direction
+### Arditi : refusal direction
 | Ours | Reference |
 |---|---|
 | `experiments/behavioral_direction/arditi_repro.py` (selection ~L173-199, scoring L62-66) | `paper_refs/refusal_direction/pipeline/submodules/select_direction.py` (L17-49 logit score, L106-191) |
@@ -75,7 +75,7 @@ to the paper is actually **ours** or **absent from the released code**.
 |---|---|
 | `experiments/trained_repair/qresafe_dpo.py` (loss L66-69, hyperparams L150-155) | `paper_refs/Qresafe/quant-with-ft/quant.py` (L187-208) + `configs/llama7b.yaml` (L11-59) |
 | `experiments/trained_repair/qresafe_pairs.py` (pair build L115-119) | `paper_refs/Qresafe/quant-with-ft/alignment/data.py` (L70-73, chosen/rejected swap) |
-| `qresafe_fold.py` (our fold — **no counterpart**, it is our extension) | *(none — Q-Resafe keeps adapters separate)* |
+| `qresafe_fold.py` (our fold : **no counterpart**, it is our extension) | *(none : Q-Resafe keeps adapters separate)* |
 
 ### LR-QAT
 | Ours | Reference |
@@ -95,7 +95,7 @@ to the paper is actually **ours** or **absent from the released code**.
 
 ---
 
-## Anomaly audit (2026-07) — status
+## Anomaly audit (2026-07) : status
 
 Two-cell context: the core localization result **replicates on Phi-3** as well as Llama
 (`outputs/headline/headline_eval_phi3_aqlm2.json`: ASR 41.5→65.0 under quant; read recovery
@@ -105,26 +105,25 @@ p=0.0076). So the fixes below are hygiene on a sound two-cell result, not load-b
 Core method math verified CLEAN in both (DPO loss/polarity, LoRA, fold, read/write split;
 LR-QAT reparam, STE, merge, zero-init). No Critical/High math anomaly.
 
-### Applied (safe — no paper number moves)
+### Applied (safe : no paper number moves)
 - **L1-Q** `attach_masked_lora` default `alpha` 256.0 → 128.0 (was a silent 2× trap).
-- **LR-QAT stale paths** — `diagnostics/lrqat_repair.py` header/usage → `experiments/trained_repair/lrqat.py`.
-- **M1-L comment only** — KD-loss docstring now states the true behavior (batch=1 → loss is
+- **LR-QAT stale paths** : `diagnostics/lrqat_repair.py` header/usage → `experiments/trained_repair/lrqat.py`.
+- **M1-L comment only** : KD-loss docstring now states the true behavior (batch=1 → loss is
   SUMMED over positions). The `F.kl_div(reduction="batchmean")` call itself is UNCHANGED.
 
-### STAGED — run-and-compare before applying (moves a paper number; never silent)
-- **M1-L normalization** — switching KD loss to a per-token mean changes grad-clip binding and
+### STAGED : run-and-compare before applying (moves a paper number; never silent)
+- **M1-L normalization** : switching KD loss to a per-token mean changes grad-clip binding and
   early-stop, so it alters LR-QAT training dynamics → potentially different **Table 7** ASR.
   Decision: run with per-token mean, compare to current Table 7, report corrected version + note.
-- **M2-Q recipe** — official TRL config also uses cosine LR + 0.1 warmup, effective batch 16
+- **M2-Q recipe** : official TRL config also uses cosine LR + 0.1 warmup, effective batch 16
   (8×2 accum), LoRA dropout 0.05; our loop uses constant-LR AdamW, batch 1, dropout 0. Matching
   these moves **Table 6** → run-and-compare, same discipline as the lr/alpha/epochs reconciliation.
 
 ### VERIFY FIRST (do not repoint blindly)
-- **H1 pairs handshake** — producer writes `..._eval`, consumer seeks `..._wj`, on-disk canonical
+- **H1 pairs handshake** : producer writes `..._eval`, consumer seeks `..._wj`, on-disk canonical
   is `qresafe_pairs_llama_wj.json` (231 pairs). No `qresafe_dpo` output exists in `outputs/` to
   confirm which pairs file Table 6 trained on. Confirm the canonical pairs file against the paper
   BEFORE aligning the default, or a rerun silently trains on different data.
 
 ### DEFERRED
-- **M1-Q** hardcoded `AQLM_REPO = /jet/home/bhoomire/...` — works on Bridges-2 (where the fold
-  runs). Wire to env/config when setting up the fold elsewhere; not biting now.
+- **M1-Q** `AQLM_REPO` must be set for Q-Resafe fold (clone ISTA-DASLab/AQLM and export the path).

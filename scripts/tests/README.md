@@ -7,11 +7,11 @@ Use these only for plumbing. Numbers from smoke runs are **not** paper results.
 ## Order of operations
 
 ```text
-1. Login node   →  git pull + pytest (CPU)
-2. Env check    →  sbatch scripts/tests/00_env_check.sbatch
-3. GPU smoke    →  llama/aqlm2 + phi3/aqlm2 (can run in parallel)
-4. Optional     →  qresafe pairs smokes (llama, phi3)
-5. Full grid    →  only after 1–3 look clean
+1. Login node: git pull + pytest (CPU)
+2. Env check: sbatch scripts/tests/00_env_check.sbatch
+3. GPU smoke: llama/aqlm2 + phi3/aqlm2 (can run in parallel)
+4. Optional: qresafe pairs smokes (llama, phi3)
+5. Full grid: only after 1-3 look clean
 ```
 
 Or submit the full chain with Slurm dependencies:
@@ -26,15 +26,12 @@ SKIP_PHI=1 bash scripts/tests/submit_smoke.sh     # llama only
 ## 1. Login node (no GPU)
 
 ```bash
-cd /jet/home/bhoomire/projects/safequant_v2   # or your REPO_ROOT
-source /opt/packages/anaconda3-2024.10-1/etc/profile.d/conda.sh
-conda activate /ocean/projects/cis240116p/bhoomire/conda_envs/sq_clean
+cd "$REPO_ROOT"   # your git checkout; configure .env first
 
-# Unit tests (seed + anchors). Must be 14 passed.
-# If pytest is missing:  pip install pytest
+# Unit tests (seed + anchors).
 python -m pytest tests/ -v
 
-# Seed fingerprint from docs/SEEDS.md
+# Seed fingerprint (expected: [8, 77, 65, 43, 43])
 python -c "
 from core.seeds import set_global_seed
 import numpy as np
@@ -69,7 +66,7 @@ Each runs, with small sample sizes:
 
 Phi-3 specifically exercises the fused `qkv_proj` / `gate_up_proj` layout (and the pinned FP revision in `config.py`).
 
-Success looks like: job exits 0, JSONs under `outputs/`. Cos-sim / ASR at these `n_*` are noisy — ignore magnitude.
+Success looks like: job exits 0, JSONs under `outputs/`. Cos-sim / ASR at these `n_*` are noisy : ignore magnitude.
 
 ## 4. Optional Q-Resafe pairs smokes
 
@@ -101,5 +98,5 @@ ls -lt outputs/signal_geometry/ outputs/headline/ | head
 ## Overrides
 
 ```bash
-REPO_ROOT=/jet/home/bhoomire/projects/safequant sbatch scripts/tests/03_smoke_phi3_aqlm2.sbatch
+sbatch --account="$SLURM_ACCOUNT" scripts/tests/03_smoke_phi3_aqlm2.sbatch
 ```

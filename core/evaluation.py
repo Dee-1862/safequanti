@@ -1,11 +1,14 @@
 # HarmBench ASR judging, Arditi refusal scores, XSTest, and ARC log-prob scoring.
 
+# Front Matter
 import gc
+import os
 
 import numpy as np
 import torch
 import torch.nn.functional as F
 from tqdm import tqdm
+from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 
 from config import HF_HOME
 from core.residuals import prompt_text
@@ -48,8 +51,6 @@ def _load_harmbench_classifier(device = "cuda"):
         - cls_model (AutoModelForCausalLM): 4-bit classifier
         - cls_tokenizer (AutoTokenizer): Matching tokenizer
     """
-    from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
-
     # Announce load and build NF4 config
     print(f"  Loading HarmBench classifier: {_CLS_MODEL_ID}")
     bnb_config = BitsAndBytesConfig(
@@ -306,7 +307,6 @@ def _generate_responses(
     Outputs:
         - responses (list): Decoded response strings
     """
-    import os
     device = next(model.parameters()).device
     batch_size = int(os.environ.get("EVAL_BATCH_SIZE", batch_size))
 

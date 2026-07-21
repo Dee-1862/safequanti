@@ -4,10 +4,15 @@ Compares live output JSONs (or core function outputs after refactor) against
 tests/anchors/frozen_metrics.json within float tolerance. Run with:
   pytest tests/test_anchors.py -v
 """
+
+# Front Matter
+import importlib.util
 import json
+import sys
 from pathlib import Path
 
 import pytest
+import torch
 
 ROOT = Path(__file__).resolve().parent.parent
 ANCHORS = json.loads((Path(__file__).parent / "anchors" / "frozen_metrics.json").read_text())
@@ -45,9 +50,6 @@ def test_probe_accuracy_min_acc():
 
 def test_core_directions_compute_r_hat_stable():
     """Smoke test that core directions module imports and runs."""
-    import importlib.util
-    import torch
-
     spec = importlib.util.spec_from_file_location(
         "directions", ROOT / "core" / "directions.py"
     )
@@ -65,9 +67,6 @@ def test_core_directions_compute_r_hat_stable():
 
 
 def test_manifest_result_path():
-    import importlib.util
-    import sys
-
     spec = importlib.util.spec_from_file_location(
         "manifest", ROOT / "core" / "manifest.py"
     )
